@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Hunt Scoreboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #1a1a1f;
+    --surface2: #222228;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --muted: #888880;
+    --hint: #555550;
+    --blue: #85B7EB;
+    --blue-dim: #2a3d52;
+    --bronze: #CD7F32;
+    --bronze-dim: #3d2a10;
+    --silver: #A8A9AD;
+    --silver-dim: #2e2e32;
+    --gold: #CFB53B;
+    --gold-dim: #3d3210;
+    --accent: #7F77DD;
+    --accent-dim: #2a2850;
+    --danger: #E24B4A;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container { max-width: 680px; margin: 0 auto; }
+
+  header { margin-bottom: 2.5rem; }
+  header h1 {
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+  }
+  header h1 span { color: var(--accent); }
+  header p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .today-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .today-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+  .today-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+  .today-label {
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .today-date {
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+  }
+  .today-score {
+    font-size: clamp(3.5rem, 12vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+  }
+  .today-score span {
+    font-size: 1.2rem;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 0.25rem;
+  }
+
+  .goal-track {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0.75rem;
+  }
+  .goal-seg {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface2);
+    overflow: hidden;
+    position: relative;
+  }
+  .goal-seg-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .goal-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+    margin-bottom: 1rem;
+  }
+  .medal-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .badge-bronze { background: var(--bronze-dim); color: var(--bronze); }
+  .badge-silver { background: var(--silver-dim); color: var(--silver); }
+  .badge-gold { background: var(--gold-dim); color: var(--gold); }
+
+  .reset-link {
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    float: right;
+    margin-top: 4px;
+  }
+  .reset-link:hover { color: var(--muted); }
+
+  .act-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  @media (max-width: 480px) { .act-grid { grid-template-columns: 1fr; } }
+
+  .act-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .act-btn:hover { border-color: var(--border2); background: var(--surface2); }
+  .act-btn:active { transform: scale(0.97); }
+  .act-btn-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .act-pts-badge {
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  .act-count-big {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+  }
+  .act-name {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .act-flash {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 12px;
+  }
+  .act-flash.pop { animation: flash 0.25s ease-out forwards; }
+  @keyframes flash { 0%{opacity:0.18} 100%{opacity:0} }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  @media (max-width: 400px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 0.75rem;
+    text-align: center;
+  }
+  .metric-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .metric-lbl {
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .section-label {
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+  }
+  .chart-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 80px;
+  }
+  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .bar-body { flex: 1; display: flex; align-items: flex-end; width: 100%; }
+  .bar-fill {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.4s ease;
+    min-height: 2px;
+  }
+  .bar-lbl {
+    font-size: 8px;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+    margin-top: 4px;
+    text-align: center;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .btn-row { display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .btn {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); border-color: var(--accent); }
+  .btn-accent {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-accent:hover { background: var(--accent); color: var(--bg); }
+
+  .report-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    display: none;
+  }
+  .report-out {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    line-height: 1.7;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  .report-out::-webkit-scrollbar { width: 4px; }
+  .report-out::-webkit-scrollbar-track { background: transparent; }
+  .report-out::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  footer {
+    text-align: center;
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--hint);
+    margin-top: 3rem;
+    line-height: 1.8;
+  }
+  footer a { color: var(--hint); }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.6rem 1.2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+    transition: transform 0.3s ease;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .scoring-guide {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .scoring-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+  .scoring-row:last-child { border-bottom: none; }
+  .scoring-row-name { color: var(--muted); }
+  .scoring-row-pts {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Job Hunt <span>Scoreboard</span></h1>
+    <p id="header-date">// loading...</p>
+  </header>
+
+  <div class="today-card">
+    <div class="today-header">
+      <div class="today-label">Today's score</div>
+      <div class="today-date" id="today-date-label"></div>
+    </div>
+    <div class="today-score" id="today-score">0 <span>pts</span></div>
+    <div id="medal-wrap" style="margin-bottom:1rem;min-height:26px;"></div>
+    <div class="goal-track">
+      <div class="goal-seg"><div class="goal-seg-fill" id="seg-bronze" style="background:var(--bronze);"></div></div>
+      <div class="goal-seg"><div class="goal-seg-fill" id="seg-silver" style="background:var(--silver);"></div></div>
+      <div class="goal-seg"><div class="goal-seg-fill" id="seg-gold" style="background:var(--gold);"></div></div>
+    </div>
+    <div class="goal-labels">
+      <span>0</span><span>Bronze 25</span><span>Silver 50</span><span>Gold 75+</span>
+    </div>
+    <button class="reset-link" onclick="resetToday()">reset today</button>
+  </div>
+
+  <div class="act-grid" id="act-grid"></div>
+
+  <div class="metrics-grid">
+    <div class="metric"><div class="metric-val" id="m-total">0</div><div class="metric-lbl">Total pts</div></div>
+    <div class="metric"><div class="metric-val" id="m-streak">0</div><div class="metric-lbl">Streak</div></div>
+    <div class="metric"><div class="metric-val" id="m-best">0</div><div class="metric-lbl">Best day</div></div>
+    <div class="metric"><div class="metric-val" id="m-days">0</div><div class="metric-lbl">Active days</div></div>
+  </div>
+
+  <div class="chart-section">
+    <div class="section-label">Daily activity — last 20 sessions</div>
+    <div class="chart-wrap" id="chart"><div style="color:var(--hint);font-size:0.75rem;font-family:'DM Mono',monospace;align-self:center;width:100%;text-align:center;">No activity yet — start logging above!</div></div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div>Under bronze</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--bronze);"></div>Bronze 25+</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--silver);"></div>Silver 50+</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gold);"></div>Gold 75+</div>
+    </div>
+  </div>
+
+  <div class="scoring-guide">
+    <div class="section-label" style="margin-bottom:0.75rem;">Scoring guide</div>
+    <div class="scoring-row"><span class="scoring-row-name">Application submitted</span><span class="scoring-row-pts">1 pt</span></div>
+    <div class="scoring-row"><span class="scoring-row-name">Follow-up communication</span><span class="scoring-row-pts">1 pt</span></div>
+    <div class="scoring-row"><span class="scoring-row-name">Technical skills assessment</span><span class="scoring-row-pts">2 pts</span></div>
+    <div class="scoring-row"><span class="scoring-row-name">Recruiter interview</span><span class="scoring-row-pts">5 pts</span></div>
+    <div class="scoring-row"><span class="scoring-row-name">Hiring manager / team interview</span><span class="scoring-row-pts">10 pts</span></div>
+    <div class="scoring-row"><span class="scoring-row-name">Screening technical assignment</span><span class="scoring-row-pts">10 pts</span></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-accent" onclick="showReport()">Generate report</button>
+    <button class="btn" onclick="exportData()">Export backup</button>
+    <button class="btn" onclick="document.getElementById('import-file').click()">Import backup</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+
+  <div class="report-wrap" id="report-wrap">
+    <div class="section-label" style="margin-bottom:0.75rem;">Report <button class="reset-link" onclick="document.getElementById('report-wrap').style.display='none'">hide</button></div>
+    <div class="report-out" id="report-out"></div>
+  </div>
+
+  <footer>
+    <p>Job Hunt Scoreboard &mdash; track the grind, celebrate the wins.</p>
+    <p>Data stored locally in your browser. Use Export to back up between devices.</p>
+    <p style="margin-top:8px;">Bronze: 25pts &nbsp;|&nbsp; Silver: 50pts &nbsp;|&nbsp; Gold: 75pts</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ACTS = [
+  { name: 'Application submitted',           pts: 1,  key: 'app'    },
+  { name: 'Follow-up communication',         pts: 1,  key: 'follow' },
+  { name: 'Technical skills assessment',     pts: 2,  key: 'assess' },
+  { name: 'Recruiter interview',             pts: 5,  key: 'recint' },
+  { name: 'Hiring manager / team interview', pts: 10, key: 'hmint'  },
+  { name: 'Screening technical assignment',  pts: 10, key: 'assign' },
+];
+
+const LS_KEY = 'jobhunt_data';
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { days: {} };
+}
+
+function saveData(data) {
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+}
+
+function todayTotal(data) {
+  const today = todayStr();
+  const d = data.days[today];
+  if (!d) return 0;
+  return ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0);
+}
+
+function allDaysSorted(data) {
+  return Object.keys(data.days)
+    .filter(date => {
+      const d = data.days[date];
+      return ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0) > 0;
+    })
+    .sort()
+    .map(date => {
+      const d = data.days[date];
+      const total = ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0);
+      return { date, total, counts: d.counts };
+    });
+}
+
+function getMedal(score) {
+  if (score >= 75) return { label: 'Gold',   cls: 'badge-gold'   };
+  if (score >= 50) return { label: 'Silver', cls: 'badge-silver' };
+  if (score >= 25) return { label: 'Bronze', cls: 'badge-bronze' };
+  return null;
+}
+
+function getBarColor(score) {
+  if (score >= 75) return 'var(--gold)';
+  if (score >= 50) return 'var(--silver)';
+  if (score >= 25) return 'var(--bronze)';
+  return 'var(--blue)';
+}
+
+function getStreak(days) {
+  const daySet = new Set(days.map(d => d.date));
+  let streak = 0;
+  let check = new Date();
+  check.setHours(0,0,0,0);
+  for (let i = 0; i < 90; i++) {
+    const ds = check.toISOString().slice(0, 10);
+    if (daySet.has(ds)) {
+      streak++;
+    } else {
+      const dow = check.getDay();
+      if (dow !== 0 && dow !== 6) break;
+    }
+    check.setDate(check.getDate() - 1);
+  }
+  return streak;
+}
+
+function getWeekKey(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.getFullYear(), d.getMonth(), diff).toISOString().slice(0, 10);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function render() {
+  const data = loadData();
+  const today = todayStr();
+  const tt = todayTotal(data);
+  const allDays = allDaysSorted(data);
+  const cumTotal = allDays.reduce((s, d) => s + d.total, 0);
+  const best = allDays.length ? Math.max(...allDays.map(d => d.total)) : 0;
+  const streak = getStreak(allDays);
+
+  document.getElementById('header-date').textContent = '// ' + new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  document.getElementById('today-date-label').textContent = today;
+  document.getElementById('today-score').innerHTML = tt + ' <span>pts</span>';
+
+  const medal = getMedal(tt);
+  document.getElementById('medal-wrap').innerHTML = medal
+    ? `<span class="medal-badge ${medal.cls}">${medal.label}</span>` : '';
+
+  const b1 = Math.min(100, Math.round((tt / 25) * 100));
+  const b2 = tt >= 25 ? Math.min(100, Math.round(((tt - 25) / 25) * 100)) : 0;
+  const b3 = tt >= 50 ? Math.min(100, Math.round(((tt - 50) / 25) * 100)) : 0;
+  document.getElementById('seg-bronze').style.width = b1 + '%';
+  document.getElementById('seg-silver').style.width = b2 + '%';
+  document.getElementById('seg-gold').style.width = b3 + '%';
+
+  document.getElementById('m-total').textContent = cumTotal;
+  document.getElementById('m-streak').textContent = streak;
+  document.getElementById('m-best').textContent = best;
+  document.getElementById('m-days').textContent = allDays.length;
+
+  const todayCounts = (data.days[today] || {}).counts || {};
+  document.getElementById('act-grid').innerHTML = ACTS.map(a => `
+    <button class="act-btn" onclick="addAct('${a.key}')" id="btn-${a.key}">
+      <div class="act-flash" id="flash-${a.key}"></div>
+      <div class="act-btn-top">
+        <div class="act-count-big">${todayCounts[a.key] || 0}</div>
+        <div class="act-pts-badge">+${a.pts}pt${a.pts > 1 ? 's' : ''}</div>
+      </div>
+      <div class="act-name">${a.name}</div>
+    </button>`).join('');
+
+  const recent = allDays.slice(-20);
+  if (recent.length === 0) {
+    document.getElementById('chart').innerHTML = '<div style="color:var(--hint);font-size:0.75rem;font-family:\'DM Mono\',monospace;align-self:center;width:100%;text-align:center;">No activity yet — start logging above!</div>';
+    return;
+  }
+  const maxVal = Math.max(...recent.map(d => d.total), 75);
+  document.getElementById('chart').innerHTML = recent.map(d => {
+    const h = Math.max(4, Math.round((d.total / maxVal) * 72));
+    const label = d.date.slice(5).replace('-', '/');
+    return `<div class="bar-col">
+      <div class="bar-body">
+        <div class="bar-fill" style="height:${h}px;background:${getBarColor(d.total)};"></div>
+      </div>
+      <div class="bar-lbl">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function addAct(key) {
+  const data = loadData();
+  const today = todayStr();
+  if (!data.days[today]) data.days[today] = { counts: {} };
+  data.days[today].counts[key] = (data.days[today].counts[key] || 0) + 1;
+  saveData(data);
+  render();
+  const flash = document.getElementById('flash-' + key);
+  if (flash) { flash.classList.remove('pop'); void flash.offsetWidth; flash.classList.add('pop'); }
+}
+
+function resetToday() {
+  if (!confirm('Reset today\'s score?')) return;
+  const data = loadData();
+  const today = todayStr();
+  data.days[today] = { counts: {} };
+  saveData(data);
+  render();
+}
+
+function showReport() {
+  const data = loadData();
+  const allDays = allDaysSorted(data);
+  if (allDays.length === 0) { showToast('No data to report yet!'); return; }
+
+  const weeks = {};
+  allDays.forEach(d => {
+    const wk = getWeekKey(d.date);
+    if (!weeks[wk]) weeks[wk] = [];
+    weeks[wk].push(d);
+  });
+
+  let out = 'JOB HUNT SCOREBOARD — REPORT\n';
+  out += 'Generated: ' + new Date().toLocaleString() + '\n';
+  out += '═'.repeat(44) + '\n\n';
+
+  let running = 0;
+  Object.keys(weeks).sort().forEach(wk => {
+    const wdays = weeks[wk];
+    const wTotal = wdays.reduce((s, d) => s + d.total, 0);
+    out += 'WEEK OF ' + wk + '\n';
+    out += '─'.repeat(44) + '\n';
+    wdays.forEach(d => {
+      running += d.total;
+      const medal = getMedal(d.total);
+      out += d.date + '  ' + String(d.total).padStart(3) + ' pts';
+      if (medal) out += '  [' + medal.label + ']';
+      out += '\n';
+      ACTS.forEach(a => {
+        const c = d.counts[a.key] || 0;
+        if (c > 0) out += '  ' + a.name + ': ' + c + ' × ' + a.pts + 'pt = ' + (c * a.pts) + 'pts\n';
+      });
+    });
+    out += 'Week total: ' + wTotal + ' pts\n\n';
+  });
+
+  out += '═'.repeat(44) + '\n';
+  out += 'RUNNING TOTAL: ' + running + ' pts\n';
+  out += 'ACTIVE DAYS:   ' + allDays.length + '\n';
+  out += 'BEST DAY:      ' + Math.max(...allDays.map(d => d.total)) + ' pts\n';
+  out += 'STREAK:        ' + getStreak(allDays) + ' days\n';
+
+  document.getElementById('report-out').textContent = out;
+  document.getElementById('report-wrap').style.display = 'block';
+}
+
+function exportData() {
+  const data = loadData();
+  const exportObj = { exported: new Date().toISOString(), version: 1, days: data.days };
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jobhunt-backup-' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exported!');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      if (obj.days) {
+        const existing = loadData();
+        Object.assign(existing.days, obj.days);
+        saveData(existing);
+        render();
+        showToast('Backup imported!');
+      }
+    } catch(err) {
+      showToast('Import failed — invalid file.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+render();
+</script>
+</body>
+</html>
