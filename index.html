@@ -506,17 +506,19 @@ function todayTotal(data) {
   return ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0);
 }
 
+
+function getDayTotal(d) {
+  if (d.legacy && d.counts._legacy_total) return d.counts._legacy_total;
+  return ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0);
+}
+
 function allDaysSorted(data) {
   return Object.keys(data.days)
-    .filter(date => {
-      const d = data.days[date];
-      return ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0) > 0;
-    })
+    .filter(date => getDayTotal(data.days[date]) > 0)
     .sort()
     .map(date => {
       const d = data.days[date];
-      const total = ACTS.reduce((s, a) => s + a.pts * (d.counts[a.key] || 0), 0);
-      return { date, total, counts: d.counts };
+      return { date, total: getDayTotal(d), counts: d.counts, legacy: !!d.legacy };
     });
 }
 
@@ -710,13 +712,20 @@ function importData(event) {
   reader.onload = e => {
     try {
       const obj = JSON.parse(e.target.result);
+      const existing = loadData();
       if (obj.days) {
-        const existing = loadData();
         Object.assign(existing.days, obj.days);
-        saveData(existing);
-        render();
-        showToast('Backup imported!');
       }
+      if (obj.legacy && Array.isArray(obj.legacy)) {
+        obj.legacy.forEach(entry => {
+          if (!existing.days[entry.date]) {
+            existing.days[entry.date] = { counts: { _legacy_total: entry.total }, legacy: true };
+          }
+        });
+      }
+      saveData(existing);
+      render();
+      showToast('Backup imported!');
     } catch(err) {
       showToast('Import failed — invalid file.');
     }
